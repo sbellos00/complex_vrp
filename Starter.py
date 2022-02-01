@@ -38,12 +38,7 @@ def solve (model, time_weight, nof):
         testRoute(model, route, testTime, testDemand, testProfit)
         solution.routes.append(route)
     for r in solution.routes:
-        formatted_time_weight = "{:.2f}".format(r.time_weight)
-        formatted_y = "{:.2f}".format(r.y)
-        formatted_time = "{:.2f}".format(r.time_left)
-        r.time_weight = float(formatted_time_weight)
-        r.y = float(formatted_y)
-        r.time_left = float(formatted_time)
+        r.time_weight, r.y, r.time_left = formatter(r.time_weight, r.y, r.time_left)
         solution.profit = solution.profit + r.profit
     SolDrawer.draw(nof, solution, model.nodes, model.uselessNodes, colors)
     firstSolution = solution
@@ -147,18 +142,10 @@ def going(model, current, dest):
     return time, demand, profit
 
 def testRoute(model, route, testTime, testDemand, testProfit):
-    formatted_demandT = "{:.2f}".format(model.max_capacity - testDemand)
-    formatted_profitT = "{:.2f}".format(testProfit)
-    formatted_timeT = "{:.2f}".format(model.max_duration - testTime)
-    testDemand = float(formatted_demandT)
-    testProfit = float(formatted_profitT)
-    testTime = float(formatted_timeT)
-    formatted_supplyr = "{:.2f}".format(route.supply_left)
-    formatted_profitr = "{:.2f}".format(route.profit)
-    formatted_timer = "{:.2f}".format(route.time_left)
-    route.supply_left = float(formatted_supplyr)
-    route.profit = float(formatted_profitr)
-    route.time_left = float(formatted_timer)
+    demandLeft = model.max_capacity - testDemand
+    timeLeft = model.max_duration - testTime
+    testDemand, testProfit, testTime = formatter(demandLeft, testProfit, timeLeft)
+    route.supply_left, route.profit, route.time_left = formatter(route.supply_left, route.profit, route.time_left)
     if testTime == route.time_left and testDemand == route.supply_left and testProfit == route.profit:
         print("Test passed successfully")
     else:
@@ -228,6 +215,15 @@ def routeInsertNode(position, node, route, model):
         added = False
     return added, route
 
+def formatter(a,b,c):
+    _a = "{:.2f}".format(a)
+    _b = "{:.2f}".format(b)
+    _c = "{:.2f}".format(c)
+    a = float(_a)
+    b = float(_b)
+    c = float(_c)
+    return a,b,c
+
 solutions = []
 time_weight = 1
 for i in range (0,10):
@@ -238,7 +234,7 @@ for i in range (0,10):
     time_weight = time_weight - 0.1
 most_profitable = max(solutions, key=lambda item: item.profit)
 for route in most_profitable.routes:
-    print(route.sequence)
+    print(route.sequence, " time left:", route.time_left, " supply_left:", route.supply_left, " profit:", route.profit)
 print("Total profit")
 print(most_profitable.profit)
 print("Value of time weight")
