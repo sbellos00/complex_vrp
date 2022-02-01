@@ -1,0 +1,10 @@
+Greedy algorithm generates a first set of solution using the nextCustomer function. The solutions are different from each
+other as x and y change. For every solution, we use LP and VRP to minimize cost using the same nodes. We replace the simple, greedy 
+solution with its most cost efficient one (in terms of time cost, as demand and profit are tied to the nodes selected, so they don't change
+as long as we don't change the nodes selected). We now have an optimized set of solutions. For each position, in each route, in each
+solution, we check if a node addition is possible. If yes, we keep the potential addition to a list. Then, we find any possible addition
+combinations for each route and measure their profit. We then sort the potential additions (or combinations of additions) in the route
+potential_additions list and we make the additions that result in the biggest total profit (using marginal cost if a node addition is
+present in two different routes). We now have the best solution for each x and y. We choose the most profitable solution and exit or
+we check for each route in each solution whether it can be replaced by a more profitable route of another solution. If yes, create a new 
+solution and add it to the solution set. When we are finished, we select the most profitable solution from the solution set and exit. 
