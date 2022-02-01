@@ -2,49 +2,50 @@ from Model import *
 from SolutionDrawer import *
 
 class Route:
-    def __init__(self, x):
+    def __init__(self, time_weight):
         self.profit = 0
         self.sequence = []
         self.time_left = 200
         self.supply_left = 150
-        self.x = x
-        self.y = 1-x
+        self.time_weight = time_weight
+        self.y = 1-time_weight
 
 class Solution:
-    def __init__(self, x):
+    def __init__(self, time_weight):
         self.profit = 0
         self.routes = []
         self.time_left = 200
         self.supply_left = 150
-        self.x = x
-        self.y = 1-x
-def solve (model):
-    x = 0.8
-    solution = Solution(x)
+        self.time_weight = time_weight
+        self.y = 1-time_weight
+
+def solve (model, time_weight, nof):
+    time_weight = 0.8
+    solution = Solution(time_weight)
     for node in model.nodes:
         node.isRouted = False
     colors = ['black', 'green', 'yellow', 'orange', 'grey', 'purple']
     firstStops = [10, 25, 77, 211, 273, 322]
     for i in range(0, 6):
-        route = Route(x)
+        route = Route(time_weight)
         depot = model.nodes[0]
         route.sequence.append(depot)
-        y = 1 - x
+        y = 1 - time_weight
         customStart = False
         firstStop = model.nodes[firstStops[i]]
-        next_customer(model, route, depot, route.x, route.y, True, customStart, firstStop)
+        next_customer(model, route, depot, route.time_weight, route.y, True, customStart, firstStop)
         testTime, testDemand, testProfit = test(model, route)
         testRoute(model, route, testTime, testDemand, testProfit)
         solution.routes.append(route)
     for r in solution.routes:
-        formatted_x = "{:.2f}".format(r.x)
+        formatted_time_weight = "{:.2f}".format(r.time_weight)
         formatted_y = "{:.2f}".format(r.y)
         formatted_time = "{:.2f}".format(r.time_left)
-        r.x = float(formatted_x)
+        r.time_weight = float(formatted_time_weight)
         r.y = float(formatted_y)
         r.time_left = float(formatted_time)
         solution.profit = solution.profit + r.profit
-    SolDrawer.draw(0, solution, model.nodes, model.uselessNodes, colors)
+    SolDrawer.draw(nof, solution, model.nodes, model.uselessNodes, colors)
     firstSolution = solution
     txt = "Total Profit\n" + str(firstSolution.profit) + "\n"
     counter = 1
@@ -53,7 +54,8 @@ def solve (model):
         rt = ' '.join(str(n) for n in route.sequence)
         txt = txt + rt + "\n"
         counter = counter + 1
-    with open('solution0.txt', 'w') as g:
+    file_name = "solution" + str(nof) + "0.txt"
+    with open(file_name, 'w') as g:
         g.write(txt)
         g.close()
     for tr in range(0, 10):
@@ -61,7 +63,7 @@ def solve (model):
             addition, new_route = addNode(model, solution.routes[r], r)
             if addition:
                 solution.routes[r] = new_route
-        SolDrawer.draw(1, solution, model.nodes, model.uselessNodes, colors)
+        SolDrawer.draw(100+nof, solution, model.nodes, model.uselessNodes, colors)
         bestSolution = solution
         bestSolution.profit = 0
     for route in bestSolution.routes:
@@ -73,9 +75,11 @@ def solve (model):
         rt = ' '.join(str(n) for n in route.sequence)
         txt = txt + rt + "\n"
         counter = counter + 1
-    with open('solution1.txt', 'w') as g:
+    file_name = "solution" + str(nof) + "1.txt"
+    with open(file_name, 'w') as g:
         g.write(txt)
         g.close()
+    return bestSolution
 def next_customer(model, route, current_node, x, y, running, customStart, firstStop):
     options_available = getOptionList(model, current_node, running, route)
     if running:
@@ -88,13 +92,13 @@ def next_customer(model, route, current_node, x, y, running, customStart, firstS
             if customStart:
                 next_node = firstStop
             else:
-                next_node = optionsRating(options_available, x, y, model.max_duration, model.max_capacity)
+                next_node = optionsRating(options_available, time_weight, y, model.max_duration, model.max_capacity)
         route.time_left = route.time_left - (model.matrix[current_node.id][next_node.id] + next_node.stime)
         route.supply_left = route.supply_left - next_node.demand
         route.sequence.append(next_node)
         model.nodes[next_node.id].isRouted = True
         route.profit = route.profit + next_node.profit
-        next_customer(model, route, next_node, x, y, running, False, None)
+        next_customer(model, route, next_node, time_weight, y, running, False, None)
 
 def getOptionList(model, current_node, running, route):
     options_available = []
@@ -110,14 +114,14 @@ def getOptionList(model, current_node, running, route):
                 options_available.append(candidate_info)
     return options_available
 
-def optionsRating(options_available, x, y, max_duration, max_capacity):
+def optionsRating(options_available, time_weight, y, max_duration, max_capacity):
     next_node = options_available[0][0]
     max_rating = 0
     for i in range(1, len(options_available)):
         candidate = options_available[i][0]
         pr_to_cost = candidate.profit / (options_available[i][1] / max_duration)
         pr_to_demand = candidate.profit / (candidate.demand / max_capacity)
-        rating = x * pr_to_cost + y * pr_to_demand
+        rating = time_weight * pr_to_cost + y * pr_to_demand
         if rating > max_rating:
             max_rating = rating
             next_node = candidate
@@ -224,6 +228,18 @@ def routeInsertNode(position, node, route, model):
         added = False
     return added, route
 
-m = Model()
-m.BuildModel()
-solve(m)
+solutions = []
+time_weight = 1
+for i in range (0,10):
+    m = Model()
+    m.BuildModel()
+    solution = solve(m, time_weight, i)
+    solutions.append(solution)
+    time_weight = time_weight - 0.1
+most_profitable = max(solutions, key=lambda item: item.profit)
+for route in most_profitable.routes:
+    print(route.sequence)
+print("Total profit")
+print(most_profitable.profit)
+print("Value of time weight")
+print(most_profitable.time_weight)
